@@ -11,7 +11,7 @@ export default function Provider({ children }: ProviderProps) {
 
   const CreateNewUser = async () => {
     try {
-      const res = await fetch("/api/users", {
+      const res = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
