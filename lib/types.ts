@@ -1,3 +1,4 @@
+import { pgEnum } from "drizzle-orm/pg-core";
 import { ReactNode } from "react";
 
 export interface ProviderProps {
@@ -14,3 +15,13 @@ export interface UserDetailContextType {
   userDetails: UserDetails | null;
   setUserDetails: React.Dispatch<React.SetStateAction<UserDetails | null>>;
 }
+
+export const courseCategory = pgEnum("course_category", [
+  "programming",
+  "ai",
+  "business",
+  "health",
+  "science",
+  "productivity",
+  "language",
+]);

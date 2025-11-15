@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useState } from "react";
+import AddCourse from "./AddCourse";
 
 const CourseList = () => {
   const [course, setCourse] = useState([]);
@@ -18,8 +19,9 @@ const CourseList = () => {
           <h2 className="my-2 text-xl font-bold">
             No Courses Created or Available
           </h2>
-
-          <Button>Create your course</Button>
+          <AddCourse>
+            <Button>Create your course</Button>
+          </AddCourse>
         </div>
       )}
     </div>

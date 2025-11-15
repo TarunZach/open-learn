@@ -21,6 +21,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AddCourse from "./AddCourse";
 
 const SidebarOptions = [
   {
@@ -59,7 +60,9 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <Button>Create New Course</Button>
+          <AddCourse>
+            <Button>Create New Course</Button>
+          </AddCourse>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupContent>

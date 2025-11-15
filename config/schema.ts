@@ -1,3 +1,4 @@
+import { courseCategory } from "@/lib/types";
 import {
   integer,
   pgTable,
@@ -19,6 +20,27 @@ export const lessonsTable = pgTable("lessons", {
   language: varchar("language", { length: 50 }).default("en"),
   createdBy: integer("created_by").references(() => usersTable.id),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const coursesTable = pgTable("courses", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  isVideoIncluded: integer("is_video_included").default(0),
+  category: courseCategory("category").notNull(),
+  createdBy: integer("created_by").references(() => usersTable.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const courseLessonsTable = pgTable("course_lessons", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  courseId: integer("course_id")
+    .notNull()
+    .references(() => coursesTable.id),
+  lessonId: integer("lesson_id")
+    .notNull()
+    .references(() => lessonsTable.id),
+  order: integer("order").default(1),
 });
 
 export const quizzesTable = pgTable("quizzes", {
