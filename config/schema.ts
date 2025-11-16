@@ -1,11 +1,21 @@
-import { courseCategory } from "@/lib/types";
 import {
   integer,
+  pgEnum,
   pgTable,
   text,
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
+
+export const courseCategory = pgEnum("course_category", [
+  "programming",
+  "ai",
+  "business",
+  "health",
+  "science",
+  "productivity",
+  "language",
+]);
 
 export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
