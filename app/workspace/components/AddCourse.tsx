@@ -19,7 +19,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { CourseFormData, ProviderProps } from "@/lib/types";
+import {
+  COURSE_LEVEL_OPTIONS,
+  CourseFormData,
+  ProviderProps,
+} from "@/lib/types";
 import { COURSE_CATEGORY_OPTIONS } from "@/lib/types";
 import { Sparkle } from "lucide-react";
 import { useState } from "react";
@@ -29,8 +33,10 @@ const AddCourse = ({ children }: ProviderProps) => {
     title: "",
     description: "",
     topics: 0,
-    includeVideo: false,
+    includeAudio: false,
+    audioFile: null,
     category: COURSE_CATEGORY_OPTIONS[0],
+    level: COURSE_LEVEL_OPTIONS[0],
   });
 
   const onHandleChange = <K extends keyof CourseFormData>(
@@ -88,6 +94,26 @@ const AddCourse = ({ children }: ProviderProps) => {
               </div>
 
               <div className="flex flex-col gap-1">
+                <RequiredLabel>Difficulty Level</RequiredLabel>
+                <Select
+                  onValueChange={(value) =>
+                    onHandleChange("level", value as CourseFormData["level"])
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Difficulty Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_LEVEL_OPTIONS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1">
                 <RequiredLabel>No. of Topics</RequiredLabel>
                 <Input
                   type="number"
@@ -100,13 +126,26 @@ const AddCourse = ({ children }: ProviderProps) => {
               </div>
 
               <div className="flex gap-3 items-center">
-                <label>Include Video</label>
+                <label>Include Audio</label>
                 <Switch
                   onCheckedChange={(value) =>
-                    onHandleChange("includeVideo", value)
+                    onHandleChange("includeAudio", value)
                   }
                 />
               </div>
+
+              {formData.includeAudio && (
+                <div className="flex flex-col gap-1">
+                  <RequiredLabel>Upload Audio File</RequiredLabel>
+                  <Input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) =>
+                      onHandleChange("audioFile", e.target.files?.[0] || null)
+                    }
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-1">
                 <label>Course Description (optional)</label>

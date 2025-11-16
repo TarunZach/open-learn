@@ -25,10 +25,18 @@ export const COURSE_CATEGORY_OPTIONS = [
   "language",
 ] as const;
 
+export const COURSE_LEVEL_OPTIONS = [
+  "beginner",
+  "intermediate",
+  "advanced",
+] as const;
+
 export type CourseFormData = {
   title: string;
   description: string;
   topics: number;
-  includeVideo: boolean;
+  includeAudio: boolean;
+  audioFile: File | null;
   category: (typeof COURSE_CATEGORY_OPTIONS)[number];
+  level: (typeof COURSE_LEVEL_OPTIONS)[number];
 };

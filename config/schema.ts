@@ -17,6 +17,12 @@ export const courseCategory = pgEnum("course_category", [
   "language",
 ]);
 
+export const courseLevel = pgEnum("course_level", [
+  "beginner",
+  "intermediate",
+  "advanced",
+]);
+
 export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
@@ -25,10 +31,12 @@ export const usersTable = pgTable("users", {
 
 export const lessonsTable = pgTable("lessons", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  courseId: integer("course_id")
+    .notNull()
+    .references(() => coursesTable.id),
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
   language: varchar("language", { length: 50 }).default("en"),
-  createdBy: integer("created_by").references(() => usersTable.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -36,21 +44,14 @@ export const coursesTable = pgTable("courses", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
-  isVideoIncluded: integer("is_video_included").default(0),
+  isAudioIncluded: integer("is_audio_included").default(0),
+  audioUrl: varchar("audio_url", { length: 500 }),
+  transcript: text("transcript"),
   category: courseCategory("category").notNull(),
+  level: courseLevel("level").notNull(),
+  topics: integer("topics").notNull().default(3),
   createdBy: integer("created_by").references(() => usersTable.id),
   createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const courseLessonsTable = pgTable("course_lessons", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  courseId: integer("course_id")
-    .notNull()
-    .references(() => coursesTable.id),
-  lessonId: integer("lesson_id")
-    .notNull()
-    .references(() => lessonsTable.id),
-  order: integer("order").default(1),
 });
 
 export const quizzesTable = pgTable("quizzes", {
