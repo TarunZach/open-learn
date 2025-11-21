@@ -35,8 +35,9 @@ export type CourseFormData = {
   title: string;
   description: string;
   topics: number;
-  includeAudio: boolean;
-  audioFile: File | null;
+  includeAudio?: boolean;
+  audioFile?: File | null;
   category: (typeof COURSE_CATEGORY_OPTIONS)[number];
   level: (typeof COURSE_LEVEL_OPTIONS)[number];
+  transcript?: string;
 };
