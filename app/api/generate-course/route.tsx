@@ -30,7 +30,7 @@ INPUT
   "category": "${category}",
   "level": "${level}",
   "topics": ${topics},
-  "transcript": ${transcript ? JSON.stringify(transcript) : ""}
+  "transcript": ${JSON.stringify(transcript || "")}
 }
 
 =========================================
@@ -87,7 +87,79 @@ RULES
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openrouter/sherlock-think-alpha",
+          model: "x-ai/grok-4.1-fast:free",
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "courseStructure",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  topics: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        topicTitle: { type: "string" },
+                        lessons: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              title: { type: "string" },
+                              content: { type: "string" },
+                              language: { type: "string" },
+                            },
+                            required: ["title", "content", "language"],
+                            additionalProperties: false,
+                          },
+                        },
+                        quiz: {
+                          type: "object",
+                          properties: {
+                            title: { type: "string" },
+                            questions: {
+                              type: "array",
+                              items: {
+                                type: "object",
+                                properties: {
+                                  questionText: { type: "string" },
+                                  optionA: { type: "string" },
+                                  optionB: { type: "string" },
+                                  optionC: { type: "string" },
+                                  optionD: { type: "string" },
+                                  correctAnswer: {
+                                    type: "string",
+                                    enum: ["A", "B", "C", "D"],
+                                  },
+                                },
+                                required: [
+                                  "questionText",
+                                  "optionA",
+                                  "optionB",
+                                  "optionC",
+                                  "optionD",
+                                  "correctAnswer",
+                                ],
+                                additionalProperties: false,
+                              },
+                            },
+                          },
+                          required: ["title", "questions"],
+                          additionalProperties: false,
+                        },
+                      },
+                      required: ["topicTitle", "lessons", "quiz"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["topics"],
+                additionalProperties: false,
+              },
+            },
+          },
           messages: [{ role: "user", content: coursePrompt }],
         }),
       }
@@ -95,16 +167,7 @@ RULES
 
     const result = await response.json();
 
-    const textResponse = result?.choices?.[0]?.message?.content ?? "{}";
-
-    let structuredJson;
-    try {
-      structuredJson = JSON.parse(textResponse);
-    } catch {
-      // If model outputs markdown or extra text, clean it
-      const cleaned = textResponse.replace(/```json|```/g, "").trim();
-      structuredJson = JSON.parse(cleaned);
-    }
+    const structuredJson = result.choices[0].message.content;
 
     const [newCourse] = await db
       .insert(coursesTable)

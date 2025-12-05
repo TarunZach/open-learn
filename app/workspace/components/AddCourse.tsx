@@ -28,11 +28,13 @@ import {
 } from "@/lib/types";
 import { COURSE_CATEGORY_OPTIONS } from "@/lib/types";
 import { Sparkle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const AddCourse = ({ children }: ProviderProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const [formData, setFormData] = useState<CourseFormData>({
     title: "",
@@ -90,11 +92,11 @@ const AddCourse = ({ children }: ProviderProps) => {
 
       // Close modal after success
       setOpen(false);
+      setLoading(false);
+      router.push(`/workspace/courses/${data.courseId}`);
     } catch (error) {
       console.error("API Call Failed:", error);
     }
-
-    setLoading(false);
   };
 
   return (
