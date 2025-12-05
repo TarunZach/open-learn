@@ -25,10 +25,12 @@ const EditCourse = () => {
     fetchCourse();
   }, [courseId]);
 
-  return (
+  return loading ? (
     <div className="flex items-center justify-center">
-      {loading ? <LoadingSpinner /> : <CourseInfo course={course!} />}
+      <LoadingSpinner />{" "}
     </div>
+  ) : (
+    <CourseInfo course={course!} />
   );
 };
 
