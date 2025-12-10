@@ -1,11 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { UserButton } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <div>
-      <Button>Ello</Button>
-      <UserButton />
-    </div>
-  );
+  redirect("/workspace");
 }

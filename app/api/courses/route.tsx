@@ -1,29 +1,41 @@
 import { db } from "@/config/db";
-import { coursesTable } from "@/config/schema";
+import {
+  coursesTable,
+  lessonsTable,
+  quizzesTable,
+  questionsTable,
+} from "@/config/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const courseId = searchParams.get("courseId");
+  const courseId = Number(searchParams.get("courseId"));
 
   if (!courseId) {
-    return NextResponse.json(
-      { error: "courseId is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "courseId required" }, { status: 400 });
   }
 
-  const id = Number(courseId);
-
-  if (isNaN(id)) {
-    return NextResponse.json({ error: "Invalid courseId" }, { status: 400 });
-  }
-
-  const result = await db
+  const course = await db
     .select()
     .from(coursesTable)
-    .where(eq(coursesTable.id, id));
+    .where(eq(coursesTable.id, courseId));
 
-  return NextResponse.json(result[0] ?? null);
+  if (!course[0]) return NextResponse.json(null);
+
+  const lessons = await db
+    .select()
+    .from(lessonsTable)
+    .where(eq(lessonsTable.courseId, courseId));
+
+  const quizzes = await db.select().from(quizzesTable);
+
+  const questions = await db.select().from(questionsTable);
+
+  return NextResponse.json({
+    course: course[0],
+    lessons,
+    quizzes,
+    questions,
+  });
 }

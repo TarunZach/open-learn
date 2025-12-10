@@ -1,36 +1,36 @@
 "use client";
-import { LoadingSpinner } from "@/app/resuable/components/LoadingSpinner";
-import { CourseFormData } from "@/lib/types";
+
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FullCourseResponse } from "@/lib/types";
 import CourseInfo from "../components/CourseInfo";
+import TopicList from "../components/TopicList";
 
 const EditCourse = () => {
   const { courseId } = useParams();
-  const [loading, setLoading] = useState(false);
-  const [course, setCourse] = useState<CourseFormData>();
+  const [loading, setLoading] = useState(true);
+  const [courseData, setCourseData] = useState<FullCourseResponse | null>(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/courses?courseId=${courseId}`);
-        const data = await res.json();
-        setCourse(data);
-      } finally {
-        setLoading(false);
-      }
+      setLoading(true);
+      const res = await fetch(`/api/courses?courseId=${courseId}`);
+      const data = (await res.json()) as FullCourseResponse;
+      setCourseData(data);
+      setLoading(false);
     };
 
     fetchCourse();
   }, [courseId]);
 
-  return loading ? (
-    <div className="flex items-center justify-center">
-      <LoadingSpinner />{" "}
+  if (loading) return <div>Loading...</div>;
+  if (!courseData) return <div>Course not found</div>;
+
+  return (
+    <div className="p-5">
+      <CourseInfo course={courseData.course} />
+      <TopicList course={courseData} />
     </div>
-  ) : (
-    <CourseInfo course={course!} />
   );
 };
 

@@ -1,5 +1,6 @@
+import { Button } from "@/components/ui/button";
 import { CourseFormData } from "@/lib/types";
-import { Book, TrendingUp } from "lucide-react";
+import { Book, Settings, TrendingUp } from "lucide-react";
 
 const CourseInfo = ({ course }: { course: CourseFormData }) => {
   return (
@@ -23,6 +24,12 @@ const CourseInfo = ({ course }: { course: CourseFormData }) => {
               <h2>{course?.level}</h2>
             </section>
           </div>
+        </div>
+        <div className="flex items-center justify-center">
+          <Button className="max-w-sm">
+            <Settings />
+            Generate Content
+          </Button>
         </div>
       </div>
     </div>
