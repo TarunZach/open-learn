@@ -93,7 +93,7 @@ const AddCourse = ({ children }: ProviderProps) => {
       // Close modal after success
       setOpen(false);
       setLoading(false);
-      router.push(`/workspace/courses/${data.courseId}`);
+      router.push(`/workspace/course/${data.courseId}`);
     } catch (error) {
       console.error("API Call Failed:", error);
     }

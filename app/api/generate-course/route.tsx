@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const coursePrompt = `
 Generate a complete micro-learning course structure in valid JSON format.
 
-You are given course metadata and an optional transcript. If a transcript or description is provided, USE IT to generate lessons, explanations, and quiz questions. If transcript is null, generate content based on general knowledge of the topic. The difficulty level also should be considered when generating the course.
+You are given course metadata and an optional transcript. If a transcript or description is provided, USE IT to generate lessons, explanations, and quiz questions. If the transcript is null, generate content based on general knowledge of the topic. The difficulty level also should be considered when generating the course.
 
 Return ONLY the JSON — no commentary.
 
@@ -49,6 +49,7 @@ OUTPUT SCHEMA
         }
       ],
       "quiz": {
+        "lessonIndex": number,
         "title": "string",
         "questions": [
           {
@@ -71,8 +72,9 @@ RULES
 
 - Generate EXACTLY ${topics} topics.
 - Each topic must contain 2–4 lessons.
-- Lessons MUST be based on transcript if available.
+- Lessons MUST be based on the transcript if available.
 - Only ONE quiz per topic.
+- Each quiz MUST be tied to a specific lesson using the "lessonIndex" property (0-based index).
 - Quiz must contain 3–5 MCQs.
 - Use "en" as language.
 - Return ONLY valid JSON.
@@ -87,7 +89,7 @@ RULES
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "x-ai/grok-4.1-fast:free",
+          model: "openai/gpt-oss-20b:free",
           response_format: {
             type: "json_schema",
             json_schema: {
@@ -118,6 +120,7 @@ RULES
                         quiz: {
                           type: "object",
                           properties: {
+                            lessonIndex: { type: "number" },
                             title: { type: "string" },
                             questions: {
                               type: "array",
@@ -146,7 +149,7 @@ RULES
                               },
                             },
                           },
-                          required: ["title", "questions"],
+                          required: ["lessonIndex", "title", "questions"],
                           additionalProperties: false,
                         },
                       },
@@ -167,7 +170,15 @@ RULES
 
     const result = await response.json();
 
-    const structuredJson = result.choices[0].message.content;
+    const structuredString = result.choices[0].message.content;
+
+    let structuredJson;
+    try {
+      structuredJson = JSON.parse(structuredString);
+    } catch (e: Error | any) {
+      console.error("Failed to parse JSON:", structuredString);
+      throw new Error("Model returned invalid JSON", e.message);
+    }
 
     const [newCourse] = await db
       .insert(coursesTable)
@@ -184,7 +195,9 @@ RULES
     const courseId = newCourse.id;
 
     for (const topic of structuredJson.topics) {
-      for (const lesson of topic.lessons) {
+      for (let i = 0; i < topic.lessons.length; i++) {
+        const lesson = topic.lessons[i];
+
         // Insert lesson for this course
         const [newLesson] = await db
           .insert(lessonsTable)
@@ -198,28 +211,30 @@ RULES
 
         const lessonId = newLesson.id;
 
-        // Insert quiz belonging to this lesson
-        const [newQuiz] = await db
-          .insert(quizzesTable)
-          .values({
-            lessonId,
-            title: topic.quiz.title,
-          })
-          .returning();
+        // Insert quiz if the lessonIndex matches the current lesson
+        if (topic.quiz.lessonIndex === i) {
+          const [newQuiz] = await db
+            .insert(quizzesTable)
+            .values({
+              lessonId,
+              title: topic.quiz.title,
+            })
+            .returning();
 
-        const quizId = newQuiz.id;
+          const quizId = newQuiz.id;
 
-        // Insert questions for this quiz
-        for (const q of topic.quiz.questions) {
-          await db.insert(questionsTable).values({
-            quizId,
-            questionText: q.questionText,
-            optionA: q.optionA,
-            optionB: q.optionB,
-            optionC: q.optionC,
-            optionD: q.optionD,
-            correctAnswer: q.correctAnswer,
-          });
+          // Insert questions for this quiz
+          for (const q of topic.quiz.questions) {
+            await db.insert(questionsTable).values({
+              quizId,
+              questionText: q.questionText,
+              optionA: q.optionA,
+              optionB: q.optionB,
+              optionC: q.optionC,
+              optionD: q.optionD,
+              correctAnswer: q.correctAnswer,
+            });
+          }
         }
       }
     }
