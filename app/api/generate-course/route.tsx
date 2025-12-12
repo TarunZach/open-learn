@@ -175,6 +175,7 @@ RULES
     let structuredJson;
     try {
       structuredJson = JSON.parse(structuredString);
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: Error | any) {
       console.error("Failed to parse JSON:", structuredString);
       throw new Error("Model returned invalid JSON", e.message);
