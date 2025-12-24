@@ -23,8 +23,7 @@ const ViewCourse = () => {
   const [courseData, setCourseData] = useState<FullCourseResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -46,46 +45,45 @@ const ViewCourse = () => {
   if (loading) return <div>Loading...</div>;
   if (!courseData) return <div>Course not found</div>;
 
-  const content: ContentItem[] = [
-    ...courseData.lessons.map(
-      (lesson) =>
-        ({
-          type: "lesson",
-          title: lesson.title,
-          content: lesson.content,
-        } as const)
-    ),
-    ...courseData.quizzes.map(
-      (quiz) =>
-        ({
-          type: "quiz",
-          title: quiz.title,
-          questions: courseData.questions.filter(
-            (question) => question.quizId === quiz.id
-          ),
-        } as const)
-    ),
-  ];
+  const content: ContentItem[] = [];
+
+  courseData.lessons.forEach((lesson) => {
+    content.push({
+      type: "lesson",
+      title: lesson.title,
+      content: lesson.content,
+    });
+
+    const quiz = courseData.quizzes.find((q) => q.lessonId === lesson.id);
+
+    if (quiz) {
+      content.push({
+        type: "quiz",
+        title: quiz.title,
+        questions: courseData.questions.filter(
+          (question) => question.quizId === quiz.id
+        ),
+      });
+    }
+  });
 
   const handleNext = () => {
     if (currentIndex < content.length - 1) {
-      setSelectedAnswer(null);
-      setIsCorrect(null);
-      setCurrentIndex(currentIndex + 1);
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
-      setSelectedAnswer(null);
-      setIsCorrect(null);
-      setCurrentIndex(currentIndex - 1);
+      setCurrentIndex((prev) => prev - 1);
     }
   };
 
-  const handleAnswerSelection = (selected: string, correctAnswer: string) => {
-    setSelectedAnswer(selected);
-    setIsCorrect(selected === correctAnswer);
+  const handleAnswerSelection = (questionId: number, selected: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: selected,
+    }));
   };
 
   const renderContent = () => {
@@ -107,31 +105,42 @@ const ViewCourse = () => {
           {currentItem.questions.map((q) => (
             <div key={q.id} className="mt-5">
               <p className="font-semibold">{q.questionText}</p>
-              <div className="mt-3">
-                {["A", "B", "C", "D"].map((option) => (
-                  <label
-                    key={option}
-                    className={`block p-2 border rounded-lg cursor-pointer ${
-                      selectedAnswer === option
-                        ? isCorrect
-                          ? "bg-green-200"
-                          : "bg-red-200"
-                        : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`question-${q.id}`}
-                      value={option}
-                      className="mr-2"
-                      onChange={() =>
-                        handleAnswerSelection(option, q.correctAnswer)
-                      }
-                      disabled={selectedAnswer !== null}
-                    />
-                    {q[`option${option}` as keyof Question]}
-                  </label>
-                ))}
+              <div className="mt-3 flex flex-col gap-3">
+                {["A", "B", "C", "D"].map((option) => {
+                  const selected = answers[q.id];
+                  const hasAnswered = selected !== undefined;
+                  const isSelected = selected === option;
+                  const isCorrectOption = option === q.correctAnswer;
+
+                  return (
+                    <label
+                      key={option}
+                      className={`block p-2 border rounded-lg cursor-pointer
+                                  ${
+                                    hasAnswered && isCorrectOption
+                                      ? "bg-green-200"
+                                      : ""
+                                  }
+                                  ${
+                                    isSelected && !isCorrectOption
+                                      ? "bg-red-200"
+                                      : ""
+                                  }
+                                `}
+                    >
+                      <input
+                        type="radio"
+                        name={`question-${q.id}`}
+                        value={option}
+                        className="mr-2"
+                        checked={isSelected}
+                        onChange={() => handleAnswerSelection(q.id, option)}
+                        disabled={hasAnswered}
+                      />
+                      {q[`option${option}` as keyof Question]}
+                    </label>
+                  );
+                })}
               </div>
             </div>
           ))}

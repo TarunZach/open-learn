@@ -12,7 +12,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  Book,
   Compass,
   LayoutDashboard,
   PencilRulerIcon,
@@ -28,11 +27,6 @@ const SidebarOptions = [
     title: "Dashboard",
     icon: LayoutDashboard,
     path: "/workspace",
-  },
-  {
-    title: "My Courses",
-    icon: Book,
-    path: "/workspace/my-courses",
   },
   {
     title: "Explore Courses",
