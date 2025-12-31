@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   COURSE_LEVEL_OPTIONS,
@@ -40,8 +39,6 @@ const AddCourse = ({ children }: ProviderProps) => {
     title: "",
     description: "",
     topics: 0,
-    includeAudio: false,
-    audioFile: null,
     category: COURSE_CATEGORY_OPTIONS[0],
     level: COURSE_LEVEL_OPTIONS[0],
     transcript: "",
@@ -68,12 +65,6 @@ const AddCourse = ({ children }: ProviderProps) => {
       topics: formData.topics,
       transcript: formData.transcript || "",
     };
-
-    if (formData.includeAudio && formData.audioFile) {
-      payload.includeAudio = true;
-      payload.audioFile = formData.audioFile;
-    }
-
     try {
       const response = await fetch("/api/generate-course", {
         method: "POST",
@@ -181,31 +172,6 @@ const AddCourse = ({ children }: ProviderProps) => {
                       }
                     />
                   </div>
-
-                  <div className="flex gap-3 items-center">
-                    <label>Include Audio</label>
-                    <Switch
-                      onCheckedChange={(value) =>
-                        onHandleChange("includeAudio", value)
-                      }
-                    />
-                  </div>
-
-                  {formData.includeAudio && (
-                    <div className="flex flex-col gap-1">
-                      <RequiredLabel>Upload Audio File</RequiredLabel>
-                      <Input
-                        type="file"
-                        accept="audio/*"
-                        onChange={(e) =>
-                          onHandleChange(
-                            "audioFile",
-                            e.target.files?.[0] || null
-                          )
-                        }
-                      />
-                    </div>
-                  )}
 
                   <div className="flex flex-col gap-1">
                     <label>Course Description (optional)</label>

@@ -45,8 +45,6 @@ export const coursesTable = pgTable("courses", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
-  audioUrl: varchar("audio_url", { length: 500 }).default(""),
-  transcript: text("transcript"),
   category: courseCategory("category").notNull(),
   level: courseLevel("level").notNull(),
   topics: integer("topics").notNull().default(3),

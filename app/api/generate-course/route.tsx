@@ -11,12 +11,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { title, description, category, level, topics, transcript } = body;
+    const { title, description, category, level, topics } = body;
 
     const coursePrompt = `
 Generate a complete micro-learning course structure in valid JSON format.
 
-You are given course metadata and an optional transcript. If a transcript or description is provided, USE IT to generate lessons, explanations, and quiz questions. If the transcript is null, generate content based on general knowledge of the topic. The difficulty level also should be considered when generating the course.
+You are given course metadata and an optional transcript. If a transcript or description is provided, USE IT to generate lessons, explanations, and quiz questions. The difficulty level also should be considered when generating the course.
 
 Return ONLY the JSON — no commentary.
 
@@ -30,7 +30,6 @@ INPUT
   "category": "${category}",
   "level": "${level}",
   "topics": ${topics},
-  "transcript": ${JSON.stringify(transcript || "")}
 }
 
 =========================================
@@ -89,7 +88,7 @@ RULES
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b:free",
+          model: "mistralai/devstral-2512:free",
           response_format: {
             type: "json_schema",
             json_schema: {
@@ -189,7 +188,6 @@ RULES
         category,
         level,
         topics,
-        transcript: transcript || "",
       })
       .returning();
 

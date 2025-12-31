@@ -95,7 +95,7 @@ const Courses = () => {
         {courses.map((course) => (
           <div
             key={course.id}
-            className="p-5 border rounded-lg shadow hover:shadow-lg transition flex flex-col w-100"
+            className="p-5 border rounded-lg shadow hover:shadow-lg transition flex flex-col w-full"
           >
             {completedCourses.includes(course.id) && (
               <span className="inline-block mb-2 text-xs px-2 py-1 bg-green-600 text-white rounded">
@@ -108,7 +108,7 @@ const Courses = () => {
               Category: {course.category}
             </p>
 
-            <div className="flex gap-2 items-center justify-between mt-auto pt-4">
+            <div className="flex gap-2 items-center justify-between mt-auto pt-4 overflow-scroll">
               {completedCourses.includes(course.id) ? (
                 <Button
                   variant="outline"
