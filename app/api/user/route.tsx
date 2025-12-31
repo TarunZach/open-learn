@@ -2,29 +2,67 @@ import { db } from "@/config/db";
 import { usersTable } from "@/config/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
-export const POST = async (req: Request) => {
-  const { name, email } = await req.json();
+export const GET = async () => {
+  const { userId } = await auth();
 
-  // User already exists?
-  const users = await db
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const existing = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.email, email));
+    .where(eq(usersTable.clerkUserId, userId));
 
-  // New user
-  if (users?.length === 0) {
-    const result = await db
-      .insert(usersTable)
-      .values({
-        name,
-        email,
-      })
-      .returning();
+  if (existing.length === 0) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ user: existing[0] });
+};
+
+export const POST = async () => {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const existing = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.clerkUserId, userId));
+
+  if (existing.length > 0) {
     return NextResponse.json({
-      message: "User created successfully!",
-      user: result[0],
+      created: false,
+      user: existing[0],
     });
   }
-  return NextResponse.json({ message: "User already exists!", user: users[0] });
+
+  const clerk = await clerkClient();
+  const clerkUser = await clerk.users.getUser(userId);
+
+  const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+  const name = clerkUser.firstName || clerkUser.username || "User";
+
+  if (!email) {
+    return NextResponse.json({ error: "Email not found" }, { status: 400 });
+  }
+
+  const result = await db
+    .insert(usersTable)
+    .values({
+      clerkUserId: userId,
+      name,
+      email,
+    })
+    .returning();
+
+  return NextResponse.json({
+    created: true,
+    user: result[0],
+  });
 };

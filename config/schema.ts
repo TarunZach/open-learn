@@ -26,6 +26,7 @@ export const courseLevel = pgEnum("course_level", [
 export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
+  clerkUserId: varchar("clerk_user_id", { length: 255 }).notNull().unique(),
   email: varchar({ length: 255 }).notNull().unique(),
 });
 

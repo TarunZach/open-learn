@@ -6,42 +6,34 @@ import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 export default function Provider({ children }: ProviderProps) {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
 
-  const CreateNewUser = async () => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: user?.fullName,
-          email: user?.primaryEmailAddress?.emailAddress,
-        }),
-      });
-
-      const data = await res.json();
-      console.log("User API Response:", data);
-      setUserDetails(data.user);
-    } catch (error) {
-      console.error("Error creating user:", error);
-    }
-  };
-
   useEffect(() => {
-    if (!user) return;
+    if (!isLoaded || !user) return;
+    const syncUserWithDB = async () => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "POST",
+        });
 
-    const create = async () => {
-      await CreateNewUser();
+        if (!res.ok) {
+          console.error("User API failed", res.status);
+          return;
+        }
+
+        const data = await res.json();
+        setUserDetails(data.user);
+      } catch (error) {
+        console.error("Error syncing user:", error);
+      }
     };
-
-    create();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    syncUserWithDB();
+  }, [isLoaded, user]);
 
   return (
     <UserDetailContext.Provider value={{ userDetails, setUserDetails }}>
-      <div>{children}</div>
+      {children}
     </UserDetailContext.Provider>
   );
 }

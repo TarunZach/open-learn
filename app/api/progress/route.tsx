@@ -1,5 +1,5 @@
 import { db } from "@/config/db";
-import { progressTable } from "@/config/schema";
+import { lessonsTable, progressTable } from "@/config/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -35,4 +35,25 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ success: true });
+}
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const userId = searchParams.get("userId");
+  const courseId = searchParams.get("courseId");
+
+  if (!userId || !courseId) {
+    return NextResponse.json({ error: "Missing params" }, { status: 400 });
+  }
+
+  const progress = await db
+    .select({
+      lessonId: progressTable.lessonId,
+      completed: progressTable.completed,
+    })
+    .from(progressTable)
+    .innerJoin(lessonsTable, eq(progressTable.lessonId, lessonsTable.id))
+    .where(eq(progressTable.userId, Number(userId)));
+
+  return NextResponse.json({ progress });
 }

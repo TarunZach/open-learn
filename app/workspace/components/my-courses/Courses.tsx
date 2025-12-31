@@ -10,6 +10,8 @@ import AddCourse from "../AddCourse";
 const Courses = () => {
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [completedCourses, setCompletedCourses] = useState<number[]>([]);
+  const [dbUserId, setDbUserId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -25,6 +27,23 @@ const Courses = () => {
         setLoading(false);
       }
     };
+
+    const fetchCompleted = async () => {
+      const res = await fetch("/api/user");
+      const userData = await res.json();
+
+      const dbId = userData.user.id;
+      setDbUserId(dbId);
+
+      const progressRes = await fetch(
+        `/api/progress/completed-courses?userId=${dbId}`
+      );
+      const progressData = await progressRes.json();
+
+      setCompletedCourses(progressData.completedCourses);
+    };
+
+    fetchCompleted();
 
     fetchCourses();
   }, []);
@@ -78,6 +97,11 @@ const Courses = () => {
             key={course.id}
             className="p-5 border rounded-lg shadow hover:shadow-lg transition flex flex-col w-100"
           >
+            {completedCourses.includes(course.id) && (
+              <span className="inline-block mb-2 text-xs px-2 py-1 bg-green-600 text-white rounded">
+                Completed
+              </span>
+            )}
             <h2 className="text-xl font-bold">{course.title}</h2>
             <p className="text-gray-600">{course.description}</p>
             <p className="text-sm text-gray-500 mt-2">
@@ -85,9 +109,40 @@ const Courses = () => {
             </p>
 
             <div className="flex gap-2 items-center justify-between mt-auto pt-4">
-              <Button className="mt-3">
-                <Link href={`/workspace/course/${course.id}`}>View Course</Link>
-              </Button>
+              {completedCourses.includes(course.id) ? (
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  disabled={!dbUserId}
+                  onClick={async () => {
+                    if (!dbUserId) return;
+
+                    await fetch("/api/progress/reset", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        userId: dbUserId,
+                        courseId: course.id,
+                      }),
+                    });
+
+                    setCompletedCourses((prev) =>
+                      prev.filter((id) => id !== course.id)
+                    );
+
+                    window.location.href = `/workspace/course/${course.id}`;
+                  }}
+                >
+                  Restart
+                </Button>
+              ) : (
+                <Button className="mt-3">
+                  <Link href={`/workspace/course/${course.id}`}>
+                    View Course
+                  </Link>
+                </Button>
+              )}
+
               <Button className="mt-3">
                 <Link href={`/workspace/edit-course/${course.id}`}>
                   Edit Course
