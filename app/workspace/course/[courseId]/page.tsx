@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FullCourseResponse, Question } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { useUser } from "@clerk/nextjs";
+import { LessonViewer } from "../LessonViewer";
 
 type Lesson = {
   id: number;
@@ -12,7 +13,7 @@ type Lesson = {
   content: string;
 };
 
-const ViewCourse = () => {
+export default function ViewCourse() {
   const router = useRouter();
   const { user } = useUser();
   const { courseId } = useParams();
@@ -20,120 +21,93 @@ const ViewCourse = () => {
   const [courseData, setCourseData] = useState<FullCourseResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [dbUserId, setDbUserId] = useState<number | null>(null);
-
   const [currentIndex, setCurrentIndex] = useState(0);
-
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [mode, setMode] = useState<"read" | "audio">("read");
 
+  /* ---------------- USER ---------------- */
   useEffect(() => {
     if (!user) return;
 
-    const fetchDbUser = async () => {
-      const res = await fetch("/api/user", { method: "GET" });
-      const data = await res.json();
-      setDbUserId(data.user.id);
-    };
-
-    fetchDbUser();
+    fetch("/api/user")
+      .then((r) => r.json())
+      .then((d) => setDbUserId(d.user.id));
   }, [user]);
 
+  /* ---------------- COURSE ---------------- */
   useEffect(() => {
-    const fetchCourse = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/courses?courseId=${courseId}`);
-        const data = await res.json();
-        setCourseData(data);
-      } catch (err) {
-        console.error("Failed to fetch course", err);
-      } finally {
-        setLoading(false);
-      }
+    const load = async () => {
+      setLoading(true);
+      const res = await fetch(`/api/courses?courseId=${courseId}`);
+      const data = await res.json();
+      setCourseData(data);
+      setLoading(false);
     };
 
-    fetchCourse();
+    load();
   }, [courseId]);
 
-  const lessons: Lesson[] = useMemo(() => {
-    if (!courseData) return [];
-    return [...courseData.lessons].sort((a, b) => a.id - b.id);
-  }, [courseData]);
+  const lessons: Lesson[] = useMemo(
+    () => courseData?.lessons?.sort((a, b) => a.id - b.id) ?? [],
+    [courseData]
+  );
 
+  /* ---------------- RESUME ---------------- */
   useEffect(() => {
     if (!dbUserId || lessons.length === 0) return;
 
-    const resumeProgress = async () => {
-      const res = await fetch(
-        `/api/progress?userId=${dbUserId}&courseId=${courseId}`
-      );
-      const data = await res.json();
+    fetch(`/api/progress?userId=${dbUserId}&courseId=${courseId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.progress?.length) return setCurrentIndex(0);
 
-      if (!data.progress || data.progress.length === 0) {
-        setCurrentIndex(0);
-        return;
-      }
+        const completed = new Set(
+          d.progress
+            .filter(
+              (p: { completed: boolean; lessonId: number }) => p.completed
+            )
+            .map((p: { lessonId: number }) => p.lessonId)
+        );
 
-      const completedLessons = new Set(
-        data.progress
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((p: any) => p.completed === 1)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((p: any) => p.lessonId)
-      );
-
-      const resumeIndex = lessons.findIndex(
-        (lesson) => !completedLessons.has(lesson.id)
-      );
-
-      setCurrentIndex(resumeIndex === -1 ? 0 : resumeIndex);
-    };
-
-    resumeProgress();
+        const idx = lessons.findIndex((l) => !completed.has(l.id));
+        setCurrentIndex(idx === -1 ? 0 : idx);
+      });
   }, [dbUserId, lessons, courseId]);
 
   const currentLesson = lessons[currentIndex];
 
-  const currentQuiz = useMemo(() => {
-    if (!courseData || !currentLesson) return null;
+  const currentQuiz = useMemo(
+    () =>
+      courseData?.quizzes.find((q) => q.lessonId === currentLesson?.id) ?? null,
+    [courseData, currentLesson]
+  );
 
-    return courseData.quizzes.find(
-      (quiz) => quiz.lessonId === currentLesson.id
-    );
-  }, [courseData, currentLesson]);
+  const quizQuestions: Question[] = useMemo(
+    () =>
+      courseData?.questions.filter((q) => q.quizId === currentQuiz?.id) ?? [],
+    [courseData, currentQuiz]
+  );
 
-  const quizQuestions: Question[] = useMemo(() => {
-    if (!courseData || !currentQuiz) return [];
-
-    return courseData.questions.filter((q) => q.quizId === currentQuiz.id);
-  }, [courseData, currentQuiz]);
-
-  const progressValue = useMemo(() => {
-    if (lessons.length === 0) return 0;
-    return Math.round(((currentIndex + 1) / lessons.length) * 100);
-  }, [currentIndex, lessons.length]);
+  const progressValue = Math.round(((currentIndex + 1) / lessons.length) * 100);
 
   const quizAnswered =
-    quizQuestions.length === 0 ||
-    quizQuestions.every((q) => answers[q.id] !== undefined);
+    quizQuestions.length === 0 || quizQuestions.every((q) => answers[q.id]);
 
-  const isLastLesson = currentIndex === lessons.length - 1;
+  const isLast = currentIndex === lessons.length - 1;
 
   const saveProgress = async () => {
-    if (!currentLesson || !dbUserId) return;
+    if (!dbUserId || !currentLesson) return;
 
-    const score =
-      quizQuestions.length === 0
-        ? 0
-        : quizQuestions.reduce(
-            (acc, q) => acc + (answers[q.id] === q.correctAnswer ? 1 : 0),
-            0
-          );
+    const score = quizQuestions.reduce(
+      (acc, q) => acc + (answers[q.id] === q.correctAnswer ? 1 : 0),
+      0
+    );
 
     await fetch("/api/progress", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: dbUserId, // ✅ INTEGER
+        userId: dbUserId,
         lessonId: currentLesson.id,
         completed: 1,
         score,
@@ -141,111 +115,68 @@ const ViewCourse = () => {
     });
   };
 
-  const handleNext = async () => {
+  const next = async () => {
     await saveProgress();
-
-    if (!isLastLesson) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      console.log("Course completed");
-      router.push(`/workspace`);
-    }
+    if (isLast) router.push("/workspace");
+    else setCurrentIndex((i) => i + 1);
   };
 
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  };
-
-  const handleAnswerSelection = (questionId: number, selected: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: selected,
-    }));
-  };
-
-  if (loading) return <div className="p-5">Loading...</div>;
-  if (!courseData || !currentLesson)
-    return <div className="p-5">Course not found</div>;
+  if (loading) return <div className="p-5">Loading…</div>;
+  if (!currentLesson) return <div className="p-5">Not found</div>;
 
   return (
     <div className="p-5 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">{courseData.course.title}</h1>
+      <h1 className="text-3xl font-bold mb-4">{courseData?.course.title}</h1>
 
-      <div className="mb-6">
-        <Progress value={progressValue} />
-        <p className="text-sm text-gray-600 mt-1">{progressValue}% completed</p>
+      {/* MODE SWITCH */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setMode("read")}
+          className={`px-3 py-1 rounded ${
+            mode === "read" ? "bg-black text-white" : "bg-gray-200"
+          }`}
+        >
+          Read
+        </button>
+        <button
+          onClick={() => setMode("audio")}
+          className={`px-3 py-1 rounded ${
+            mode === "audio" ? "bg-black text-white" : "bg-gray-200"
+          }`}
+        >
+          Audio
+        </button>
       </div>
 
-      <div className="p-5 border rounded-lg shadow">
-        <h2 className="text-xl font-bold">{currentLesson.title}</h2>
-        <p className="mt-3">{currentLesson.content}</p>
+      <Progress value={progressValue} />
+      <p className="text-sm mt-1">{progressValue}% completed</p>
 
-        {currentQuiz && quizQuestions.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold">{currentQuiz.title}</h3>
-
-            {quizQuestions.map((q) => (
-              <div key={q.id} className="mt-5">
-                <p className="font-semibold">{q.questionText}</p>
-
-                <div className="mt-3 flex flex-col gap-3">
-                  {["A", "B", "C", "D"].map((option) => {
-                    const selected = answers[q.id];
-                    const hasAnswered = selected !== undefined;
-                    const isSelected = selected === option;
-                    const isCorrectOption = option === q.correctAnswer;
-
-                    return (
-                      <label
-                        key={option}
-                        className={`block p-2 border rounded-lg cursor-pointer
-                          ${
-                            hasAnswered && isCorrectOption ? "bg-green-200" : ""
-                          }
-                          ${isSelected && !isCorrectOption ? "bg-red-200" : ""}
-                        `}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${q.id}`}
-                          value={option}
-                          className="mr-2"
-                          checked={isSelected}
-                          onChange={() => handleAnswerSelection(q.id, option)}
-                          disabled={hasAnswered}
-                        />
-                        {q[`option${option}` as keyof Question]}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <LessonViewer
+        lesson={currentLesson}
+        mode={mode}
+        quiz={currentQuiz}
+        questions={quizQuestions}
+        answers={answers}
+        onAnswer={(id, opt) => setAnswers((a) => ({ ...a, [id]: opt }))}
+      />
 
       <div className="flex justify-between mt-6">
         <button
-          onClick={handlePrevious}
+          onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
           disabled={currentIndex === 0}
-          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+          className="px-4 py-2 bg-gray-300 rounded"
         >
           Previous
         </button>
 
         <button
-          onClick={handleNext}
-          disabled={!quizAnswered || !dbUserId}
-          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+          onClick={next}
+          disabled={mode === "read" && !quizAnswered}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
         >
-          {isLastLesson ? "Finish" : "Next"}
+          {isLast ? "Finish" : "Next"}
         </button>
       </div>
     </div>
   );
-};
-
-export default ViewCourse;
+}
