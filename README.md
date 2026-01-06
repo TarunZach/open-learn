@@ -153,6 +153,10 @@ npm run build
 
 # Run Piper TTS
 docker run --rm -p 5001:5000 piper-tts-http
+
+OR
+
+docker run -p 5001:5000 piper-tts-http
 ```
 
 ---
