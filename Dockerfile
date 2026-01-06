@@ -1,17 +1,24 @@
-# Use the Node.js 18 Alpine Linux image as the base image
-FROM node:22.21-alpine 
+# ---- Base image ----
+FROM python:3.12-slim
 
-WORKDIR /app
+# ---- System deps (minimal) ----
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY package*.json ./
+# ---- Environment ----
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-RUN npm install
+# ---- Install Piper HTTP API ----
+RUN python3 -m pip install "piper-tts[http]"
 
-COPY . .
+# ---- Download voice (cached in image) ----
+RUN python3 -m piper.download_voices en_US-lessac-medium
 
-RUN npm run build
+# ---- Expose HTTP API port ----
+EXPOSE 5000
 
-COPY .next ./.next
-
-# Run the application in development mode
-CMD ["npm", "run", "dev"]
+# ---- Run Piper HTTP server ----
+CMD ["python3", "-m", "piper.http_server", "-m", "en_US-lessac-medium", "--host", "0.0.0.0", "--port", "5000"]
