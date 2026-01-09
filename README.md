@@ -41,7 +41,7 @@ This is a **Next.js micro-learning platform** that allows users to:
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
 - **Next.js (App Router)**
 - **TypeScript**
@@ -83,7 +83,7 @@ http://localhost:5001
 
 ---
 
-### 3️⃣ Start the Next.js App
+### Start the Next.js App
 
 ```bash
 npm run dev
